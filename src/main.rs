@@ -368,7 +368,7 @@ async fn main() -> Result<()> {
             let gemini_models: Vec<slint::SharedString> = vec![
                 "gemini-flash-lite-latest".into(), 
                 "gemini-flash-latest".into(), 
-                "gemini-pro-lates".into(),
+                "gemini-pro-latest".into(),
                 "gemma-4-26b-a4b-it".into(),
                 "gemma-4-31b-it".into()
             ];
