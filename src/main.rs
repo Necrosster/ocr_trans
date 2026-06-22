@@ -12,6 +12,7 @@ use slint::ComponentHandle;
 use anyhow::Result;
 use global_hotkey::{GlobalHotKeyManager, hotkey::{HotKey, Modifiers, Code}, GlobalHotKeyEvent};
 
+use serde::{Serialize, Deserialize};
 use i_slint_backend_winit::WinitWindowAccessor; // To access HWND on Windows
 
 fn read_gemini_txt_key() -> Option<String> {
@@ -94,6 +95,56 @@ fn get_model_name() -> String {
     default.to_string()
 }
 
+
+#[derive(Serialize, Deserialize, Default, Clone)]
+struct ProviderConfig {
+    provider: String,
+    lm_model: String,
+    gemini_model: String,
+}
+
+fn get_config_path() -> Option<std::path::PathBuf> {
+    // Check current directory first
+    if let Ok(dir) = std::env::current_dir() {
+        let path = dir.join("provider_config.json");
+        if path.exists() {
+            return Some(path);
+        }
+    }
+    // Then check executable directory
+    if let Ok(exe_path) = std::env::current_exe() {
+        if let Some(dir) = exe_path.parent() {
+            let path = dir.join("provider_config.json");
+            if path.exists() {
+                return Some(path);
+            }
+        }
+    }
+    None
+}
+
+fn save_provider_config(config: &ProviderConfig) {
+    let dir = std::env::current_exe().ok()
+        .and_then(|p| p.parent().map(|p| p.to_path_buf()))
+        .or_else(|| std::env::current_dir().ok());
+    if let Some(dir) = dir {
+        let path = dir.join("provider_config.json");
+        if let Ok(json) = serde_json::to_string_pretty(config) {
+            let _ = std::fs::write(&path, &json);
+        }
+    }
+}
+
+fn load_provider_config() -> ProviderConfig {
+    if let Some(path) = get_config_path() {
+        if let Ok(json) = std::fs::read_to_string(&path) {
+            if let Ok(config) = serde_json::from_str::<ProviderConfig>(&json) {
+                return config;
+            }
+        }
+    }
+    ProviderConfig::default()
+}
 #[derive(Default)]
 struct AppState {
     is_running: bool,
@@ -235,21 +286,64 @@ async fn main() -> Result<()> {
     // Setup initial window states
     main_window.window().set_size(slint::LogicalSize::new(400.0, 780.0));
     textbox_window.window().set_size(slint::LogicalSize::new(600.0, 200.0));
-    main_window.set_api_endpoint("http://localhost:1234/v1".into());
-    let default_model = get_model_name();
-    let lm_models: Vec<slint::SharedString> = vec![
-        default_model.clone().into(),
-        "unsloth/gemma-4-26b-a4b-it".into(),
-        "qwen/qwen3.5-9b".into(),
-        "translate-gemma-12b-it".into(),
-        "gemma-4-e4b-it".into(),
-        "gemma-4-31b-it".into(),
-        "qwen3.5-4b".into()
-    ];
-    main_window.set_model_options(slint::ModelRc::from(lm_models.as_slice()));
-    main_window.set_model_name(default_model.into());
-    main_window.set_model_index(0);
-    main_window.set_api_key("lm-studio".into());
+    // Load saved provider configuration
+    let config = load_provider_config();
+
+    // Initialize based on saved config (fallback to defaults if empty)
+    if config.provider == "Google Gemini" {
+        main_window.set_api_endpoint("https://generativelanguage.googleapis.com".into());
+        main_window.set_api_key(get_gemini_key().unwrap_or_default().into());
+        main_window.set_api_type("Google Gemini".into());
+        main_window.set_api_type_index(1);
+
+        let gemini_base: Vec<&str> = vec![
+            "gemini-flash-lite-latest",
+            "gemini-flash-latest",
+            "gemini-pro-latest",
+            "gemma-4-26b-a4b-it",
+            "gemma-4-31b-it"
+        ];
+        let mut gemini_models: Vec<String> = gemini_base.into_iter().map(|s| s.to_string()).collect();
+        if !config.gemini_model.is_empty() && !gemini_models.contains(&config.gemini_model) {
+            gemini_models.push(config.gemini_model.clone());
+        }
+        let gemini_models_slint: Vec<slint::SharedString> = gemini_models.iter().map(|s| s.into()).collect();
+        main_window.set_model_options(slint::ModelRc::from(gemini_models_slint.as_slice()));
+
+        let idx = gemini_models.iter().position(|m| m == &config.gemini_model).unwrap_or(0);
+        main_window.set_model_name(gemini_models_slint[idx].clone());
+        main_window.set_model_index(idx as i32);
+    } else {
+        // LMStudio (default)
+        main_window.set_api_endpoint("http://localhost:1234/v1".into());
+        main_window.set_api_key("lm-studio".into());
+        main_window.set_api_type("LMStudio".into());
+        main_window.set_api_type_index(0);
+
+        let default_model = get_model_name();
+        let lm_base: Vec<&str> = vec![
+            "unsloth/gemma-4-26b-a4b-it",
+            "qwen/qwen3.5-9b",
+            "translate-gemma-12b-it",
+            "gemma-4-e4b-it",
+            "gemma-4-31b-it",
+            "qwen3.5-4b"
+        ];
+        let mut lm_models: Vec<String> = lm_base.into_iter().map(|s| s.to_string()).collect();
+        if !lm_models.contains(&default_model) {
+            lm_models.insert(0, default_model.clone());
+        }
+        if !config.lm_model.is_empty() && !lm_models.contains(&config.lm_model) {
+            lm_models.push(config.lm_model.clone());
+        }
+        let lm_models_slint: Vec<slint::SharedString> = lm_models.iter().map(|s| s.into()).collect();
+        main_window.set_model_options(slint::ModelRc::from(lm_models_slint.as_slice()));
+
+        let idx = lm_models.iter().position(|m| m == &config.lm_model).unwrap_or(0);
+        main_window.set_model_name(lm_models_slint[idx].clone());
+        main_window.set_model_index(idx as i32);
+    }
+
     main_window.set_system_prompt(get_system_prompt().into());
     main_window.set_interval(0.0);
     main_window.set_base_font_size(16.0);
@@ -361,6 +455,7 @@ async fn main() -> Result<()> {
     let selection_initialized = Arc::new(Mutex::new(false));
 
     // API Type Changed Callback
+    let main_weak_api_config = main_window.as_weak();
     main_window.on_api_type_changed(move |api_type| {
         let main = main_weak_api.unwrap();
         if api_type == "Google Gemini" {
@@ -376,13 +471,27 @@ async fn main() -> Result<()> {
             main.set_model_name("gemini-flash-lite-latest".into());
             main.set_model_index(0);
             main.set_api_key(get_gemini_key().unwrap_or_default().into());
-            main.set_system_prompt(main.get_system_prompt()); // Preserve current prompt if user edited it, or we could reset to default
-
+            main.set_system_prompt(main.get_system_prompt());
         } else {
             main.set_api_endpoint("http://localhost:1234/v1".into());
             main.set_api_key("lm-studio".into());
-            // Model sync will be triggered separately by sync_lmstudio_models() from UI
         }
+
+        // Save provider change with current model
+        let config_main = main_weak_api_config.unwrap();
+        let current = load_provider_config();
+        let mut config = ProviderConfig {
+            provider: api_type.to_string(),
+            ..ProviderConfig::default()
+        };
+        if api_type == "LMStudio" {
+            config.lm_model = config_main.get_model_name().to_string();
+            config.gemini_model = current.gemini_model;
+        } else {
+            config.gemini_model = config_main.get_model_name().to_string();
+            config.lm_model = current.lm_model;
+        }
+        save_provider_config(&config);
     });
 
     let state_api_key = state.clone();
@@ -397,6 +506,25 @@ async fn main() -> Result<()> {
             s.api_key = api_key;
         }
     });
+
+    // Model Selection Changed Callback (Save provider_config.json)
+    let main_weak_model = main_window.as_weak();
+    main_window.on_model_changed(move |model_name| {
+        if let Some(main) = main_weak_model.upgrade() {
+            let current = load_provider_config();
+            let mut config = ProviderConfig {
+                provider: main.get_api_type().to_string(),
+                ..current
+            };
+            if main.get_api_type().as_str() == "LMStudio" {
+                config.lm_model = model_name.to_string();
+            } else {
+                config.gemini_model = model_name.to_string();
+            }
+            save_provider_config(&config);
+        }
+    });
+    
     
     // Sync LMStudio Models helper (shared logic)
     fn make_sync_lm_future(

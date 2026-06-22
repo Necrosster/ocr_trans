@@ -41,6 +41,7 @@ export component MainWindow inherits Window {
     callback style_panel_toggled(bool);
     callback style_changed();
 
+    callback model_changed(string);
     VerticalLayout {
         alignment: start;
         padding: 14px;
@@ -168,6 +169,7 @@ export component MainWindow inherits Window {
                             model: model_options;
                             current-value <=> model_name;
                             current-index <=> model_index;
+                            selected(value) => { model_changed(value); }
                         }
                         Button {
                             text: "Sync";
