@@ -6,7 +6,7 @@ export component MainWindow inherits Window {
     width: 400px;
     preferred-height: show_style_settings ? 895px : 780px;
     max-height: show_style_settings ? 895px : 780px;
-    background: @linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
+	background: @linear-gradient(180deg, #1e1e1e 0%, #181818 100%);
     default-font-family: "Yu Gothic UI";
 
     in-out property <bool> is_running: false;
@@ -57,10 +57,10 @@ export component MainWindow inherits Window {
         }
 
         Rectangle {
-            background: #ffffff;
+            background: #2b2b2b;
             border-radius: 12px;
             border-width: 1px;
-            border-color: #e2e8f0;
+            border-color: #3a3a3a;
             
             VerticalLayout {
                 spacing: 8px;
@@ -69,13 +69,13 @@ export component MainWindow inherits Window {
                 
                 VerticalLayout {
                     spacing: 6px;
-                    Text { text: "Provider:"; color: #64748b; font-size: 12px; }
+                    Text { text: "Provider:"; color: #9aa5b1; font-size: 12px; }
                     Rectangle {
                         height: 34px;
-                        background: #f1f5f9;
+                        background: #363636;
                         border-radius: 8px;
                         border-width: 1px;
-                        border-color: #e2e8f0;
+                        border-color: #3a3a3a;
                         HorizontalLayout {
                             padding: 3px;
                             spacing: 2px;
@@ -90,7 +90,7 @@ export component MainWindow inherits Window {
                                     }
                                 }
                                 Rectangle {
-                                    background: api_type == "LMStudio" ? #ffffff : lm_touch.has-hover ? #e8eef6 : transparent;
+                                    background: api_type == "LMStudio" ? #1e1e1e : lm_touch.has-hover ? #404040 : transparent;
                                     border-radius: 6px;
                                     border-width: api_type == "LMStudio" ? 1px : 0px;
                                     border-color: #d1d5db;
@@ -99,7 +99,7 @@ export component MainWindow inherits Window {
                                     drop-shadow-color: #0000001a;
                                     Text {
                                         text: "LMStudio";
-                                        color: api_type == "LMStudio" ? #2563eb : #64748b;
+                                        color: api_type == "LMStudio" ? #2563eb : #9aa5b1;
                                         font-size: 12px;
                                         font-weight: api_type == "LMStudio" ? 700 : 400;
                                         horizontal-alignment: center;
@@ -117,7 +117,7 @@ export component MainWindow inherits Window {
                                     }
                                 }
                                 Rectangle {
-                                    background: api_type == "Google Gemini" ? #ffffff : g_touch.has-hover ? #e8eef6 : transparent;
+                                    background: api_type == "Google Gemini" ? #1e1e1e : g_touch.has-hover ? #404040 : transparent;
                                     border-radius: 6px;
                                     border-width: api_type == "Google Gemini" ? 1px : 0px;
                                     border-color: #d1d5db;
@@ -126,7 +126,7 @@ export component MainWindow inherits Window {
                                     drop-shadow-color: #0000001a;
                                     Text {
                                         text: "Google Gemini";
-                                        color: api_type == "Google Gemini" ? #2563eb : #64748b;
+                                        color: api_type == "Google Gemini" ? #2563eb : #9aa5b1;
                                         font-size: 12px;
                                         font-weight: api_type == "Google Gemini" ? 700 : 400;
                                         horizontal-alignment: center;
@@ -141,7 +141,7 @@ export component MainWindow inherits Window {
 
                 VerticalLayout {
                     spacing: 4px;
-                    Text { text: "Endpoint:"; color: #64748b; font-size: 12px; }
+                    Text { text: "Endpoint:"; color: #9aa5b1; font-size: 12px; }
                     LineEdit {
                         text <=> api_endpoint;
                         placeholder-text: "http://localhost:1234/v1";
@@ -150,7 +150,7 @@ export component MainWindow inherits Window {
                 
                 VerticalLayout {
                     spacing: 4px;
-                    Text { text: "API Key:"; color: #64748b; font-size: 12px; }
+                    Text { text: "API Key:"; color: #9aa5b1; font-size: 12px; }
                     LineEdit {
                         text <=> api_key;
                         input-type: password;
@@ -162,7 +162,7 @@ export component MainWindow inherits Window {
                 
                 VerticalLayout {
                     spacing: 4px;
-                    Text { text: "Model Name:"; color: #64748b; font-size: 12px; }
+                    Text { text: "Model Name:"; color: #9aa5b1; font-size: 12px; }
                     HorizontalLayout {
                         spacing: 6px;
                         ComboBox {
@@ -183,8 +183,8 @@ export component MainWindow inherits Window {
                     spacing: 4px;
                     HorizontalLayout {
                         spacing: 4px;
-                        Text { text: "Temperature:"; color: #64748b; font-size: 12px; }
-                        Text { text: round(temperature * 10) / 10; color: #1e293b; font-size: 12px; font-weight: 700; }
+                        Text { text: "Temperature:"; color: #9aa5b1; font-size: 12px; }
+                        Text { text: round(temperature * 10) / 10; color: #e0e0e0; font-size: 12px; font-weight: 700; }
                         Rectangle { } // Flexible spacer to push content left
                     }
                     Slider {
@@ -196,12 +196,12 @@ export component MainWindow inherits Window {
 
                 VerticalLayout {
                     spacing: 4px;
-                    Text { text: "System Prompt:"; color: #64748b; font-size: 12px; }
+                    Text { text: "System Prompt:"; color: #9aa5b1; font-size: 12px; }
                     Rectangle {
-                        background: #f8fafc;
+                        background: #363636;
                         border-radius: 4px;
                         border-width: 1px;
-                        border-color: #e2e8f0;
+                        border-color: #3a3a3a;
                         height: 80px;
                         TextEdit {
                             text <=> system_prompt;
@@ -215,10 +215,10 @@ export component MainWindow inherits Window {
         }
 
         Rectangle {
-            background: #ffffff;
+            background: #2b2b2b;
             border-radius: 12px;
             border-width: 1px;
-            border-color: #e2e8f0;
+            border-color: #3a3a3a;
             
             VerticalLayout {
                 spacing: 8px;
@@ -227,8 +227,8 @@ export component MainWindow inherits Window {
                 
                 HorizontalLayout {
                     spacing: 4px;
-                    Text { text: "Interval (s): "; vertical-alignment: center; color: #64748b; }
-                    Text { text: interval == 0 ? "Once" : (round(interval * 10) / 10); vertical-alignment: center; font-weight: 700; color: #1e293b; }
+                    Text { text: "Interval (s): "; vertical-alignment: center; color: #9aa5b1; }
+                    Text { text: interval == 0 ? "Once" : (round(interval * 10) / 10); vertical-alignment: center; font-weight: 700; color: #e0e0e0; }
                     Rectangle { } // Flexible spacer to push content left
                 }
                 Slider {
@@ -244,14 +244,14 @@ export component MainWindow inherits Window {
                     }
                 }
                 HorizontalLayout {
-                    Text { text: "Font Size: "; vertical-alignment: center; color: #64748b; }
-                    Text { text: round(base_font_size); vertical-alignment: center; font-weight: 700; color: #1e293b; }
+                    Text { text: "Font Size: "; vertical-alignment: center; color: #9aa5b1; }
+                    Text { text: round(base_font_size); vertical-alignment: center; font-weight: 700; color: #e0e0e0; }
                     
                     Rectangle { } // Flexible spacer
                     
                     HorizontalLayout {
                         spacing: 4px;
-                        Text { text: "Textbox"; vertical-alignment: center; color: #64748b; font-size: 12px; }
+                        Text { text: "Textbox"; vertical-alignment: center; color: #9aa5b1; font-size: 12px; }
                         CheckBox { 
                             checked <=> use_textbox;
                             toggled => { style_changed(); }
@@ -286,7 +286,7 @@ export component MainWindow inherits Window {
                         spacing: 12px;
                         VerticalLayout {
                             spacing: 4px;
-                            Text { text: "Background:"; font-size: 11px; color: #64748b; }
+                            Text { text: "Background:"; font-size: 11px; color: #9aa5b1; }
                             HorizontalLayout {
                                 spacing: 6px;
                                 Rectangle { 
@@ -329,7 +329,7 @@ export component MainWindow inherits Window {
                         VerticalLayout {
                             spacing: 4px;
                             HorizontalLayout {
-                                Text { text: "Text Color:"; font-size: 11px; color: #64748b; vertical-alignment: center; }
+                                Text { text: "Text Color:"; font-size: 11px; color: #9aa5b1; vertical-alignment: center; }
                                 Rectangle { } // Flexible spacer
                             }
                             HorizontalLayout {
@@ -366,7 +366,7 @@ export component MainWindow inherits Window {
                         }
                     }
 
-                    Text { text: "Background Opacity:"; font-size: 11px; color: #64748b; }
+                    Text { text: "Background Opacity:"; font-size: 11px; color: #9aa5b1; }
                     Slider {
                         minimum: 0.1;
                         maximum: 1.0;
@@ -382,16 +382,16 @@ export component MainWindow inherits Window {
                         clicked => { select_area_clicked(); }
                     }
                     Rectangle {
-                        background: #f8fafc;
+                        background: #363636;
                         border-radius: 8px;
                         border-width: 1px;
-                        border-color: #e2e8f0;
+                        border-color: #3a3a3a;
                         height: 32px;
                         HorizontalLayout {
                             padding-left: 8px;
                             padding-right: 8px;
                             spacing: 4px;
-                            Text { text: "Overlay"; vertical-alignment: center; font-size: 12px; color: #64748b; }
+                            Text { text: "Overlay"; vertical-alignment: center; font-size: 12px; color: #9aa5b1; }
                             CheckBox {
                                 checked <=> overlay_visible;
                                 toggled => { overlay_toggle_clicked(self.checked); }
@@ -433,21 +433,21 @@ export component TextboxWindow inherits Window {
     preferred-height: 200px;
     min-width: 320px;
     min-height: 100px;
-    background: #f8fafc;
+    background: #1e1e1e;
     default-font-family: "Yu Gothic UI";
     
     in-out property <string> text: "";
-    in-out property <color> text_color: #1e293b;
+    in-out property <color> text_color: #e0e0e0;
     in-out property <length> font_size: 15px;
 
     VerticalLayout {
         padding: 12px;
         spacing: 0px; // Reduced spacing since header is removed
         Rectangle {
-            background: #ffffff;
+            background: #2b2b2b;
             border-radius: 8px;
             border-width: 1px;
-            border-color: #e2e8f0;
+            border-color: #3a3a3a;
             ScrollView {
                 VerticalLayout {
                     width: parent.width;
@@ -456,7 +456,7 @@ export component TextboxWindow inherits Window {
                         text: text;
                         read-only: true;
                         font-size: font_size;
-                        color: text_color == #ffffff ? #000000 : text_color;
+                        color: text_color == #e0e0e0 ? #000000 : text_color;
                         wrap: word-wrap;
                     }
                 }
@@ -513,7 +513,7 @@ export component OverlayWindow inherits Window {
             Text {
                 text: "×";
                 font-size: 20px;
-                color: close_touch.has-hover ? #ef4444 : #64748b;
+                color: close_touch.has-hover ? #ef4444 : #9aa5b1;
                 horizontal-alignment: center;
                 vertical-alignment: center;
             }

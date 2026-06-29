@@ -30,8 +30,8 @@ pub fn capture_area(rect: &CaptureRect, monitors: &Option<Vec<Monitor>>) -> Resu
     // Normalize coordinates relative to the monitor
     let local_x = (rect.x - monitor.x()).max(0) as u32;
     let local_y = (rect.y - monitor.y()).max(0) as u32;
-    let w = (rect.width as u32).min(img.width() - local_x);
-    let h = (rect.height as u32).min(img.height() - local_y);
+	let w = (rect.width as u32).min(img.width().saturating_sub(local_x));
+	let h = (rect.height as u32).min(img.height().saturating_sub(local_y));
     
     if w == 0 || h == 0 {
         return Ok(RgbaImage::new(1, 1));
@@ -50,6 +50,62 @@ pub fn capture_full_screen() -> Result<RgbaImage> {
     // Using the first monitor as primary for selection
     let img = monitors[0].capture_image().context("Failed to capture monitor")?;
     Ok(img)
+}
+
+/// Описание виртуального рабочего стола (все мониторы вместе).
+pub struct VirtualScreen {
+    pub image: RgbaImage,
+    pub origin_x: i32, // глобальная X-координата левого края виртуального стола
+    pub origin_y: i32, // глобальная Y-координата верхнего края
+}
+
+/// Захватывает ВСЕ мониторы и склеивает их в одно изображение.
+/// Решает проблему выбора области на не-основном мониторе.
+pub fn capture_virtual_screen() -> Result<VirtualScreen> {
+    let monitors = Monitor::all().context("Failed to get monitors")?;
+    if monitors.is_empty() {
+        return Err(anyhow::anyhow!("No monitors found"));
+    }
+
+    // Вычисляем границы всего виртуального пространства
+    let min_x = monitors.iter().map(|m| m.x()).min().unwrap();
+    let min_y = monitors.iter().map(|m| m.y()).min().unwrap();
+    let max_x = monitors
+        .iter()
+        .map(|m| m.x() + m.width() as i32)
+        .max()
+        .unwrap();
+    let max_y = monitors
+        .iter()
+        .map(|m| m.y() + m.height() as i32)
+        .max()
+        .unwrap();
+
+    let total_w = (max_x - min_x) as u32;
+    let total_h = (max_y - min_y) as u32;
+
+    let mut canvas = RgbaImage::new(total_w, total_h);
+
+    // Накладываем скриншот каждого монитора на холст в нужную позицию
+    for m in &monitors {
+        match m.capture_image() {
+            Ok(shot) => {
+                let off_x = (m.x() - min_x) as i64;
+                let off_y = (m.y() - min_y) as i64;
+                image::imageops::overlay(&mut canvas, &shot, off_x, off_y);
+            }
+            Err(e) => {
+                log::warn!("Failed to capture monitor at ({},{}): {}", m.x(), m.y(), e);
+                continue;
+            }
+        }
+    }
+
+    Ok(VirtualScreen {
+        image: canvas,
+        origin_x: min_x,
+        origin_y: min_y,
+    })
 }
 
 /// Comparison logic to check if the screen changed enough to trigger API.

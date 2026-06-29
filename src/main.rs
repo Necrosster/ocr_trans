@@ -58,7 +58,7 @@ fn persist_google_api_key(api_key: &str) {
     }
 }
 
-const DEFAULT_SYSTEM_PROMPT: &str = "naturally translate into korean. only show translated texts.";
+const DEFAULT_SYSTEM_PROMPT: &str = "naturally translate into russian. only show translated texts.";
 
 fn get_system_prompt() -> String {
     // 1. Check current directory
@@ -161,6 +161,7 @@ struct AppState {
     overlay_text_color: slint::Color,
     overlay_bg_opacity: f32,
     use_textbox: bool,
+    virtual_origin: (i32, i32),   // ← ДОБАВИТЬ
 }
 
 
@@ -272,6 +273,8 @@ fn rgba_to_slint_image(rgba: image::RgbaImage) -> slint::Image {
 #[tokio::main]
 async fn main() -> Result<()> {
     env_logger::init();
+    // Тёмная тема для виджетов Slint (LineEdit, ComboBox, Button и т.д.)
+    std::env::set_var("SLINT_STYLE", "fluent-dark");
 
     let main_window = MainWindow::new()?;
     let overlay_window = OverlayWindow::new()?;
@@ -919,17 +922,36 @@ async fn main() -> Result<()> {
             overlay.set_translated_text("".into());
             overlay.set_show_text(false);
         }
-        // Capture screenshot for background
-        if let Ok(img) = capture::capture_full_screen() {
-            let (w, h) = img.dimensions();
-            let slint_img = rgba_to_slint_image(img);
+        // === БЫЛО ===
+        // if let Ok(img) = capture::capture_full_screen() {
+        //     let (w, h) = img.dimensions();
+        //     let slint_img = rgba_to_slint_image(img);
+        //     selection.set_screenshot(slint_img);
+        //     let sf = selection.window().scale_factor();
+        //     selection.window().set_size(slint::LogicalSize::new(w as f32 / sf, h as f32 / sf));
+        // }
+        // selection.window().set_position(slint::WindowPosition::Logical(slint::LogicalPosition::new(0.0, 0.0)));
+
+        // === СТАЛО ===
+        if let Ok(vscreen) = capture::capture_virtual_screen() {
+            let (w, h) = vscreen.image.dimensions();
+            let slint_img = rgba_to_slint_image(vscreen.image);
             selection.set_screenshot(slint_img);
-            
-            // Set window size to match physical screenshot dimensions
+
+            // Сохраняем origin для коррекции координат
+            {
+                let mut s = state_for_selection_trigger.lock().unwrap();
+                s.virtual_origin = (vscreen.origin_x, vscreen.origin_y);
+            }
+
             let sf = selection.window().scale_factor();
             selection.window().set_size(slint::LogicalSize::new(w as f32 / sf, h as f32 / sf));
+
+            // Ставим окно в РЕАЛЬНЫЙ левый-верхний угол виртуального стола (физические координаты!)
+            selection.window().set_position(slint::WindowPosition::Physical(
+                slint::PhysicalPosition::new(vscreen.origin_x, vscreen.origin_y)
+            ));
         }
-        selection.window().set_position(slint::WindowPosition::Logical(slint::LogicalPosition::new(0.0, 0.0)));
         
         #[cfg(target_os = "windows")]
         {
@@ -1009,10 +1031,11 @@ async fn main() -> Result<()> {
             let mut s = state_for_selection.lock().unwrap();
             // Convert logical to physical coordinates using scale factor
             let sf = selection.window().scale_factor();
-            
+            let (origin_x, origin_y) = s.virtual_origin;
+
             s.capture_rect = Some(capture::CaptureRect {
-                x: (x * sf) as i32,
-                y: (y * sf) as i32,
+                x: (x * sf) as i32 + origin_x,
+                y: (y * sf) as i32 + origin_y,
                 width: (w * sf) as i32,
                 height: (h * sf) as i32,
             });
@@ -1045,9 +1068,19 @@ async fn main() -> Result<()> {
                 overlay.set_hide_text(main.get_use_textbox());
                 overlay.set_is_textbox_mode(main.get_use_textbox());
                 
-                // Move and resize native window
+                // === БЫЛО ===
+                // let window = overlay.window();
+                // window.set_position(slint::WindowPosition::Logical(slint::LogicalPosition::new(x, y)));
+                // window.set_size(slint::LogicalSize::new(w, h));
+
+                // === СТАЛО ===
                 let window = overlay.window();
-                window.set_position(slint::WindowPosition::Logical(slint::LogicalPosition::new(x, y)));
+                let (origin_x, origin_y) = s.virtual_origin;
+                let global_phys_x = (x * sf) as i32 + origin_x;
+                let global_phys_y = (y * sf) as i32 + origin_y;
+                window.set_position(slint::WindowPosition::Physical(
+                    slint::PhysicalPosition::new(global_phys_x, global_phys_y)
+                ));
                 window.set_size(slint::LogicalSize::new(w, h));
                 
                 overlay.set_translated_text("Searching...".into());
@@ -1141,6 +1174,10 @@ async fn main() -> Result<()> {
                 }
 
                 if let Ok(curr_img) = capture::capture_area(&current_rect, &cached_monitors) {
+                    // DEBUG: сохраняем то, что реально захвачено
+                    let _ = curr_img.save("debug_capture.png");
+                    log::warn!("DEBUG capture: rect={:?}", current_rect);
+
                     if capture::is_changed(&prev_img, &curr_img, 0.05) {
                         prev_img = Some(curr_img.clone());
                         
